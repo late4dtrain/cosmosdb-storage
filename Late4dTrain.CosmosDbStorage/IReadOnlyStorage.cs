@@ -6,5 +6,5 @@ public interface IReadOnlyStorage<TEntity>
 {
     IAsyncEnumerable<Result<TEntity, string>> GetByAsync(
         Expression<Func<TEntity, bool>> expression,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken = default(CancellationToken));
 }

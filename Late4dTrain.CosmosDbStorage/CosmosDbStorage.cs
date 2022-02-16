@@ -38,7 +38,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
 
     public async IAsyncEnumerable<Result<TEntity, string>> GetByAsync(
         Expression<Func<TEntity, bool>> expression,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default(CancellationToken))
     {
         var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
 
