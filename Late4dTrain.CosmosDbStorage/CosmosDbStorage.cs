@@ -36,9 +36,38 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         _logger = logger;
     }
 
-    public async IAsyncEnumerable<Result<TEntity, string>> GetByAsync(
+    public async Task<Result<string, TEntity>> GetByIdAsync(
+        string identifier,
+        string partitionKey,
+        string? eTag = default,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
+
+            var response = await container.ReadItemAsync<TEntity>(
+                identifier,
+                new PartitionKey(partitionKey),
+                GetRequestOptions(eTag),
+                cancellationToken
+            );
+
+            if (response.StatusCode.IsSuccessStatusCode())
+                return Result<string>.Ok<TEntity>(response);
+
+            return Result<string>.Fail<TEntity>($"{response.StatusCode}");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, e.Message);
+            return Result<string>.Fail<TEntity>(e.Message);
+        }
+    }
+
+    public async IAsyncEnumerable<Result<string, TEntity>> GetByAsync(
         Expression<Func<TEntity, bool>> expression,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default(CancellationToken))
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
 
@@ -56,7 +85,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                              cancellationToken
                          ))
             {
-                Result<TEntity, string> result;
+                Result<string, TEntity> result;
                 try
                 {
                     result = Result<string>.Ok(item);

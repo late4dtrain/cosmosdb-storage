@@ -4,7 +4,13 @@ using System.Linq.Expressions;
 
 public interface IReadOnlyStorage<TEntity>
 {
-    IAsyncEnumerable<Result<TEntity, string>> GetByAsync(
+    Task<Result<string, TEntity>> GetByIdAsync(
+        string identifier,
+        string partitionKey,
+        string? eTag = default,
+        CancellationToken cancellationToken = default);
+
+    IAsyncEnumerable<Result<string, TEntity>> GetByAsync(
         Expression<Func<TEntity, bool>> expression,
-        CancellationToken cancellationToken = default(CancellationToken));
+        CancellationToken cancellationToken = default);
 }
