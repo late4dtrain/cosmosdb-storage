@@ -1,6 +1,5 @@
 ﻿namespace Late4dTrain.CosmosDbStorage;
 
-using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
@@ -47,7 +46,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
     {
         try
         {
-            var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
+            var container = GetContainer();
 
             var itemResponse = await container.ReadItemAsync<TEntity>(
                 identifier,
@@ -71,7 +70,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         Expression<Func<TEntity, bool>> expression,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
+        var container = GetContainer();
 
         using var setIterator = container
             .GetItemLinqQueryable<TEntity>()
@@ -110,7 +109,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
     {
         try
         {
-            var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
+            var container = GetContainer();
 
             var itemResponse = await _retryStrategy
                 .Policy
@@ -143,7 +142,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
     {
         try
         {
-            var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
+            var container = GetContainer();
 
             var itemResponse = await _retryStrategy
                 .Policy
@@ -167,6 +166,11 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
             return Fail<ItemResponse<TEntity>>(e.Message);
         }
     }
+
+    private Container GetContainer() => _cosmosClient.GetContainer(
+        _configuration.DatabaseName,
+        _configuration.ContainerName
+    );
 
     private ItemRequestOptions? GetRequestOptions(string? eTag) =>
         eTag == null
