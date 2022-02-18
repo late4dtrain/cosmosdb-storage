@@ -66,12 +66,16 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
 
     public async IAsyncEnumerable<Result<string, TEntity>> GetByAsync(
         Expression<Func<TEntity, bool>> expression,
+        string continuationToken = "",
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var container = GetContainer();
 
-        using var setIterator = container
-            .GetItemLinqQueryable<TEntity>()
+        var orderedQueryable = string.IsNullOrWhiteSpace(continuationToken)
+            ? container.GetItemLinqQueryable<TEntity>()
+            : container.GetItemLinqQueryable<TEntity>(continuationToken: continuationToken);
+
+        using var setIterator = orderedQueryable
             .Where(expression)
             .ToFeedIterator();
 

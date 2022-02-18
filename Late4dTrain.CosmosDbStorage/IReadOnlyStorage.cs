@@ -13,6 +13,6 @@ public interface IReadOnlyStorage<TEntity>
         CancellationToken cancellationToken = default);
 
     IAsyncEnumerable<Result<string, TEntity>> GetByAsync(
-        Expression<Func<TEntity, bool>> expression,
+        Expression<Func<TEntity, bool>> expression, string continuationToken = "",
         CancellationToken cancellationToken = default);
 }
