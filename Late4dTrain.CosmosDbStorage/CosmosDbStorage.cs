@@ -55,9 +55,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                 cancellationToken
             );
 
-            return itemResponse.StatusCode.IsSuccessStatusCode()
-                ? Ok(itemResponse)
-                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
+            return BuildResult(itemResponse);
         }
         catch (Exception e)
         {
@@ -123,9 +121,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                     cancellationToken
                 );
 
-            return itemResponse.StatusCode.IsSuccessStatusCode()
-                ? Ok(itemResponse)
-                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
+            return BuildResult(itemResponse);
         }
         catch (Exception e)
         {
@@ -156,9 +152,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                     cancellationToken
                 );
 
-            return itemResponse.StatusCode.IsSuccessStatusCode()
-                ? Ok(itemResponse)
-                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
+            return BuildResult(itemResponse);
         }
         catch (Exception e)
         {
@@ -166,6 +160,11 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
             return Fail<ItemResponse<TEntity>>(e.Message);
         }
     }
+
+    private static Result<string, ItemResponse<TEntity>> BuildResult(ItemResponse<TEntity> itemResponse) =>
+        itemResponse.StatusCode.IsSuccessStatusCode()
+            ? Ok(itemResponse)
+            : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
 
     private Container GetContainer() => _cosmosClient.GetContainer(
         _configuration.DatabaseName,
