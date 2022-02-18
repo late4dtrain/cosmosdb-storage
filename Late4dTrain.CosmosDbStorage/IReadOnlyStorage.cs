@@ -2,9 +2,11 @@
 
 using System.Linq.Expressions;
 
+using Microsoft.Azure.Cosmos;
+
 public interface IReadOnlyStorage<TEntity>
 {
-    Task<Result<string, TEntity>> GetByIdAsync(
+    Task<Result<string, ItemResponse<TEntity>>> GetByIdAsync(
         string identifier,
         string partitionKey,
         string? eTag = default,

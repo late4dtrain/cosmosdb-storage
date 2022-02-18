@@ -1,5 +1,6 @@
 ﻿namespace Late4dTrain.CosmosDbStorage;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 
@@ -12,6 +13,8 @@ using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Logging;
 
 using Strategies;
+
+using static Result<string>;
 
 public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlyStorage<TEntity>
 {
@@ -36,7 +39,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         _logger = logger;
     }
 
-    public async Task<Result<string, TEntity>> GetByIdAsync(
+    public async Task<Result<string, ItemResponse<TEntity>>> GetByIdAsync(
         string identifier,
         string partitionKey,
         string? eTag = default,
@@ -46,22 +49,21 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         {
             var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
 
-            var response = await container.ReadItemAsync<TEntity>(
+            var itemResponse = await container.ReadItemAsync<TEntity>(
                 identifier,
                 new PartitionKey(partitionKey),
                 GetRequestOptions(eTag),
                 cancellationToken
             );
 
-            if (response.StatusCode.IsSuccessStatusCode())
-                return Result<string>.Ok<TEntity>(response);
-
-            return Result<string>.Fail<TEntity>($"{response.StatusCode}");
+            return itemResponse.StatusCode.IsSuccessStatusCode()
+                ? Ok(itemResponse)
+                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return Result<string>.Fail<TEntity>(e.Message);
+            return Fail<ItemResponse<TEntity>>(e.Message);
         }
     }
 
@@ -88,19 +90,19 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                 Result<string, TEntity> result;
                 try
                 {
-                    result = Result<string>.Ok(item);
+                    result = Ok(item);
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, e.Message);
-                    result = Result<string>.Fail<TEntity>(e.Message);
+                    result = Fail<TEntity>(e.Message);
                 }
 
                 yield return result;
             }
     }
 
-    public async Task<Result<string>> DeleteAsync(
+    public async Task<Result<string, ItemResponse<TEntity>>> DeleteAsync(
         string identifier,
         string partitionKey,
         string? eTag = null,
@@ -110,7 +112,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         {
             var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
 
-            var response = await _retryStrategy
+            var itemResponse = await _retryStrategy
                 .Policy
                 .ExecuteAsync(
                     async ct => await container.DeleteItemAsync<TEntity>(
@@ -122,19 +124,18 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                     cancellationToken
                 );
 
-            if (response.StatusCode.IsSuccessStatusCode())
-                return Result<string>.Ok();
-
-            return Result<string>.Fail($"{response.StatusCode}");
+            return itemResponse.StatusCode.IsSuccessStatusCode()
+                ? Ok(itemResponse)
+                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return Result<string>.Fail(e.Message);
+            return Fail<ItemResponse<TEntity>>(e.Message);
         }
     }
 
-    public async Task<Result<string>> SaveAsync(
+    public async Task<Result<string, ItemResponse<TEntity>>> SaveAsync(
         TEntity document,
         string partitionKey,
         string? eTag = default,
@@ -144,7 +145,7 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
         {
             var container = _cosmosClient.GetContainer(_configuration.DatabaseName, _configuration.ContainerName);
 
-            var response = await _retryStrategy
+            var itemResponse = await _retryStrategy
                 .Policy
                 .ExecuteAsync(
                     async ct => await container.UpsertItemAsync(
@@ -156,15 +157,14 @@ public class CosmosDbStorage<TEntity> : IReadOnlyStorage<TEntity>, IWriteOnlySto
                     cancellationToken
                 );
 
-            if (response.StatusCode.IsSuccessStatusCode())
-                return Result<string>.Ok();
-
-            return Result<string>.Fail($"{response.StatusCode}");
+            return itemResponse.StatusCode.IsSuccessStatusCode()
+                ? Ok(itemResponse)
+                : Fail<ItemResponse<TEntity>>($"{itemResponse.StatusCode}");
         }
         catch (Exception e)
         {
             _logger.LogError(e, e.Message);
-            return Result<string>.Fail(e.Message);
+            return Fail<ItemResponse<TEntity>>(e.Message);
         }
     }
 
